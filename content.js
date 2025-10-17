@@ -47,6 +47,7 @@ function applyOrRemoveBlocking() {
 
 const AD_SELECTORS = 'shreddit-ad-post, shreddit-comments-page-ad, games-section-badge-controller, shreddit-gallery-carousel';
 const MEDIA_CONTAINER_SELECTOR = '[slot="post-media-container"]';
+const THUMBNAIL_SELECTOR = '[slot="thumbnail"], [data-testid="post-thumbnail"]';
 
 function showAds() {
     document.querySelectorAll(AD_SELECTORS).forEach(ad => ad.style.removeProperty('display'));
@@ -67,6 +68,11 @@ function showMedia() {
     document.querySelectorAll('[data-silent-reddit-processed]').forEach(el =>
         delete el.dataset.silentRedditProcessed
     );
+
+    document.querySelectorAll(`${THUMBNAIL_SELECTOR}[data-silent-reddit-hidden]`).forEach(thumbnail => {
+        thumbnail.style.removeProperty('display');
+        delete thumbnail.dataset.silentRedditHidden;
+    });
 
     document.querySelectorAll('.community-banner[data-silent-reddit-banner-processed]').forEach(banner => {
         if (banner.dataset.originalBannerBg) {
@@ -98,6 +104,13 @@ function hideMedia() {
             container.dataset.silentRedditPlaceholder = 'true';
             container.style.setProperty('display', 'none', 'important');
             container.parentNode?.insertBefore(createPlaceholder(!!hasVideo), container.nextSibling);
+        }
+    });
+
+    document.querySelectorAll(THUMBNAIL_SELECTOR).forEach(thumbnail => {
+        if (!thumbnail.dataset.silentRedditHidden) {
+            thumbnail.dataset.silentRedditHidden = 'true';
+            thumbnail.style.setProperty('display', 'none', 'important');
         }
     });
 
@@ -191,6 +204,12 @@ function applyBlockingRules(targetNode = document.body) {
 
     if (currentSettings.blockMedia) {
         targetNode.querySelectorAll(MEDIA_CONTAINER_SELECTOR).forEach(processMediaContainer);
+        targetNode.querySelectorAll(THUMBNAIL_SELECTOR).forEach(thumbnail => {
+            if (!thumbnail.dataset.silentRedditHidden) {
+                thumbnail.dataset.silentRedditHidden = 'true';
+                thumbnail.style.setProperty('display', 'none', 'important');
+            }
+        });
         hideCommunityBanners(targetNode);
     }
 }
