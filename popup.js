@@ -1,13 +1,15 @@
 const DEFAULT_SETTINGS = {
     enabled: true,
     blockAds: true,
-    blockMedia: true
+    blockMedia: true,
+    replaceLogo: true
 };
 
 const toggles = {
     enabled: document.getElementById('enableToggle'),
     blockAds: document.getElementById('blockAdsToggle'),
-    blockMedia: document.getElementById('blockMediaToggle')
+    blockMedia: document.getElementById('blockMediaToggle'),
+    replaceLogo: document.getElementById('replaceLogoToggle')
 };
 
 const statusDiv = document.getElementById('status');
@@ -35,34 +37,35 @@ function updateUI(settings) {
     Object.keys(toggles).forEach(key => {
         toggles[key].checked = settings[key];
     });
-    
+
     statusDiv.className = settings.enabled ? 'status enabled' : 'status disabled';
     statusDiv.textContent = settings.enabled ? '✓ 功能已启用' : '✗ 功能已禁用';
-    
+
     toggles.blockAds.disabled = !settings.enabled;
     toggles.blockMedia.disabled = !settings.enabled;
+    toggles.replaceLogo.disabled = !settings.enabled;
 }
 
 async function handleToggleChange() {
     const settings = Object.fromEntries(
         Object.entries(toggles).map(([key, toggle]) => [key, toggle.checked])
     );
-    
+
     if (await saveSettings(settings)) {
         updateUI(settings);
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
             if (tab?.url?.includes('reddit.com')) {
-                chrome.tabs.sendMessage(tab.id, { type: 'SETTINGS_UPDATED', settings }).catch(() => {});
+                chrome.tabs.sendMessage(tab.id, { type: 'SETTINGS_UPDATED', settings }).catch(() => { });
             }
-        } catch {}
+        } catch { }
     }
 }
 
 async function init() {
     const settings = await loadSettings();
     updateUI(settings);
-    Object.values(toggles).forEach(toggle => 
+    Object.values(toggles).forEach(toggle =>
         toggle.addEventListener('change', handleToggleChange)
     );
 }
