@@ -45,7 +45,7 @@ function applyOrRemoveBlocking() {
     currentSettings.replaceLogo ? replaceRedditLogo() : restoreRedditLogo();
 }
 
-const AD_SELECTORS = 'shreddit-ad-post, shreddit-comments-page-ad, games-section-badge-controller';
+const AD_SELECTORS = 'shreddit-ad-post, shreddit-comments-page-ad, games-section-badge-controller, shreddit-gallery-carousel';
 const MEDIA_CONTAINER_SELECTOR = '[slot="post-media-container"]';
 
 function showAds() {
