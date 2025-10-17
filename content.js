@@ -67,6 +67,16 @@ function showMedia() {
     document.querySelectorAll('[data-silent-reddit-processed]').forEach(el =>
         delete el.dataset.silentRedditProcessed
     );
+
+    document.querySelectorAll('.community-banner[data-silent-reddit-banner-processed]').forEach(banner => {
+        if (banner.dataset.originalBannerBg) {
+            banner.style.cssText = banner.dataset.originalBannerBg;
+            delete banner.dataset.originalBannerBg;
+        } else {
+            banner.style.removeProperty('background-image');
+        }
+        delete banner.dataset.silentRedditBannerProcessed;
+    });
 }
 
 function createPlaceholder(isVideo) {
@@ -88,6 +98,18 @@ function hideMedia() {
             container.dataset.silentRedditPlaceholder = 'true';
             container.style.setProperty('display', 'none', 'important');
             container.parentNode?.insertBefore(createPlaceholder(!!hasVideo), container.nextSibling);
+        }
+    });
+
+    hideCommunityBanners();
+}
+
+function hideCommunityBanners(targetNode = document) {
+    targetNode.querySelectorAll('.community-banner').forEach(banner => {
+        if (!banner.dataset.silentRedditBannerProcessed) {
+            banner.dataset.silentRedditBannerProcessed = 'true';
+            banner.dataset.originalBannerBg = banner.style.cssText;
+            banner.style.setProperty('background-image', 'none', 'important');
         }
     });
 }
@@ -169,6 +191,7 @@ function applyBlockingRules(targetNode = document.body) {
 
     if (currentSettings.blockMedia) {
         targetNode.querySelectorAll(MEDIA_CONTAINER_SELECTOR).forEach(processMediaContainer);
+        hideCommunityBanners(targetNode);
     }
 }
 
