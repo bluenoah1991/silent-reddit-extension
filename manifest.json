@@ -3,6 +3,25 @@
   "name": "Silent Reddit",
   "version": "1.0.0",
   "description": "Block ads and images on Reddit for distraction-free browsing during work hours",
+  "icons": {
+    "16": "icons/quiet@16.png",
+    "24": "icons/quiet@24.png",
+    "32": "icons/quiet@32.png",
+    "64": "icons/quiet@64.png",
+    "128": "icons/quiet@128.png",
+    "256": "icons/quiet@256.png",
+    "512": "icons/quiet@512.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/quiet@16.png",
+      "24": "icons/quiet@24.png",
+      "32": "icons/quiet@32.png",
+      "64": "icons/quiet@64.png",
+      "128": "icons/quiet@128.png"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["*://*.reddit.com/*"],
@@ -11,5 +30,5 @@
       "run_at": "document_start"
     }
   ],
-  "permissions": []
+  "permissions": ["storage"]
 }

@@ -1,27 +1,13 @@
 #!/usr/bin/env node
 
-/**
- * Build script for Silent Reddit Chrome Extension
- * Copies extension files to the out/ directory for Chrome to load
- */
-
 const fs = require('fs');
 const path = require('path');
 
-// Configuration
 const SOURCE_DIR = __dirname;
 const OUTPUT_DIR = path.join(__dirname, 'out');
+const FILES_TO_COPY = ['manifest.json', 'content.js', 'styles.css', 'popup.html', 'popup.js'];
+const DIRS_TO_COPY = ['icons'];
 
-// Files to copy to the output directory
-const FILES_TO_COPY = [
-    'manifest.json',
-    'content.js',
-    'styles.css'
-];
-
-/**
- * Create directory if it doesn't exist
- */
 function ensureDir(dirPath) {
     if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
@@ -29,9 +15,6 @@ function ensureDir(dirPath) {
     }
 }
 
-/**
- * Copy a single file
- */
 function copyFile(fileName) {
     const sourcePath = path.join(SOURCE_DIR, fileName);
     const destPath = path.join(OUTPUT_DIR, fileName);
@@ -51,51 +34,64 @@ function copyFile(fileName) {
     }
 }
 
-/**
- * Build the extension
- */
+function copyDir(dirName) {
+    const sourcePath = path.join(SOURCE_DIR, dirName);
+    const destPath = path.join(OUTPUT_DIR, dirName);
+    
+    if (!fs.existsSync(sourcePath)) {
+        console.warn(`Warning: Source directory not found: ${dirName}`);
+        return false;
+    }
+    
+    try {
+        ensureDir(destPath);
+        const files = fs.readdirSync(sourcePath);
+        let copiedCount = 0;
+        
+        files.forEach(file => {
+            const sourceFile = path.join(sourcePath, file);
+            const destFile = path.join(destPath, file);
+            
+            if (fs.statSync(sourceFile).isDirectory()) {
+                copyDir(path.join(dirName, file));
+            } else {
+                fs.copyFileSync(sourceFile, destFile);
+                copiedCount++;
+            }
+        });
+        
+        console.log(`Copied directory: ${dirName} (${copiedCount} files)`);
+        return true;
+    } catch (err) {
+        console.error(`Error copying directory ${dirName}:`, err.message);
+        return false;
+    }
+}
+
 function build() {
     console.log('Building Silent Reddit extension...\n');
-    
-    // Ensure output directory exists
     ensureDir(OUTPUT_DIR);
     
-    // Copy all files
     let successCount = 0;
     let failCount = 0;
     
-    FILES_TO_COPY.forEach(fileName => {
-        if (copyFile(fileName)) {
-            successCount++;
-        } else {
-            failCount++;
-        }
+    [...FILES_TO_COPY, ...DIRS_TO_COPY].forEach(item => {
+        const fn = FILES_TO_COPY.includes(item) ? copyFile : copyDir;
+        fn(item) ? successCount++ : failCount++;
     });
     
-    // Summary
-    console.log(`\nBuild complete: ${successCount} files copied`);
-    if (failCount > 0) {
-        console.warn(`${failCount} files failed to copy`);
-    }
+    console.log(`\nBuild complete: ${successCount} items copied`);
+    if (failCount > 0) console.warn(`${failCount} items failed`);
     console.log(`Output directory: ${OUTPUT_DIR}`);
 }
 
-/**
- * Watch mode - rebuild on file changes
- */
 function watch() {
     console.log('Starting watch mode...\n');
-    
-    // Initial build
     build();
+    console.log('\nWatching for file changes...\nPress Ctrl+C to stop\n');
     
-    console.log('\nWatching for file changes...');
-    console.log('Press Ctrl+C to stop\n');
-    
-    // Watch each source file
     FILES_TO_COPY.forEach(fileName => {
         const filePath = path.join(SOURCE_DIR, fileName);
-        
         if (fs.existsSync(filePath)) {
             fs.watch(filePath, (eventType) => {
                 if (eventType === 'change') {
@@ -105,13 +101,19 @@ function watch() {
             });
         }
     });
+    
+    DIRS_TO_COPY.forEach(dirName => {
+        const dirPath = path.join(SOURCE_DIR, dirName);
+        if (fs.existsSync(dirPath)) {
+            fs.watch(dirPath, { recursive: true }, (eventType, filename) => {
+                if (eventType === 'change' || eventType === 'rename') {
+                    console.log(`\nDirectory changed: ${dirName}/${filename || ''}`);
+                    copyDir(dirName);
+                }
+            });
+        }
+    });
 }
 
-// Main execution
 const args = process.argv.slice(2);
-
-if (args.includes('--watch') || args.includes('-w')) {
-    watch();
-} else {
-    build();
-}
+args.includes('--watch') || args.includes('-w') ? watch() : build();

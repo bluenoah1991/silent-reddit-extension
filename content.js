@@ -1,155 +1,178 @@
-/**
- * Silent Reddit - Content Script
- * Handles dynamic content blocking using MutationObserver
- */
+const DEFAULT_SETTINGS = { enabled: true, blockAds: true, blockMedia: true };
+let currentSettings = { ...DEFAULT_SETTINGS };
 
-// Add a text placeholder next to blocked images
-function addImagePlaceholder(img) {
-    // Skip if already processed
-    if (img.dataset.silentRedditProcessed) {
-        return;
-    }
-    
-    // Preserve subreddit icons
-    if (img.classList.contains('shreddit-subreddit-icon__icon')) {
-        return;
-    }
-    
-    // Preserve user avatars
-    const parentLink = img.closest('a[href*="/user/"]');
-    if (parentLink) {
-        return;
-    }
-    
-    // Preserve small UI icons (likely emoji or decorative icons)
-    const computedStyle = window.getComputedStyle(img);
-    const displayWidth = parseInt(computedStyle.width) || img.width || 0;
-    const displayHeight = parseInt(computedStyle.height) || img.height || 0;
-    if (displayWidth < 32 && displayHeight < 32) {
-        return;
-    }
-    
-    // Mark image as processed
-    img.dataset.silentRedditProcessed = 'true';
-    
-    // Find the media container
-    const mediaContainer = img.closest('[slot="post-media-container"]') || 
-                          img.closest('shreddit-player') ||
-                          img.closest('[data-click-id="media"]') ||
-                          img.closest('figure') ||
-                          img.parentElement;
-    
-    if (mediaContainer) {
-        // Check if this container already has a placeholder
-        if (mediaContainer.dataset.silentRedditPlaceholder) {
-            return;
-        }
-        
-        // Mark container as processed
-        mediaContainer.dataset.silentRedditPlaceholder = 'true';
-        
-        // Hide the entire container
-        mediaContainer.style.display = 'none';
-        
-        // Create text placeholder
-        const placeholder = document.createElement('span');
-        placeholder.className = 'silent-reddit-text-placeholder';
-        placeholder.textContent = '[Image]';
-        
-        // Insert placeholder after the container
-        if (mediaContainer.parentNode) {
-            mediaContainer.parentNode.insertBefore(placeholder, mediaContainer.nextSibling);
-        }
+async function loadSettings() {
+    try {
+        currentSettings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
+    } catch (error) {
+        console.error('Failed to load settings:', error);
     }
 }
 
-// Apply blocking rules to existing and new elements
+chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'SETTINGS_UPDATED') {
+        currentSettings = message.settings;
+        applyOrRemoveBlocking();
+    }
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'sync') return;
+    
+    let updated = false;
+    ['enabled', 'blockAds', 'blockMedia'].forEach(key => {
+        if (changes[key]) {
+            currentSettings[key] = changes[key].newValue;
+            updated = true;
+        }
+    });
+    
+    if (updated) {
+        console.log('Settings updated:', currentSettings);
+        applyOrRemoveBlocking();
+    }
+});
+
+function applyOrRemoveBlocking() {
+    if (!currentSettings.enabled) {
+        removeAllBlocking();
+        return;
+    }
+    
+    currentSettings.blockAds ? hideAds() : showAds();
+    currentSettings.blockMedia ? hideMedia() : showMedia();
+}
+
+const AD_SELECTORS = 'shreddit-ad-post, shreddit-comments-page-ad, games-section-badge-controller';
+const MEDIA_CONTAINER_SELECTOR = '[slot="post-media-container"]';
+
+function showAds() {
+    document.querySelectorAll(AD_SELECTORS).forEach(ad => ad.style.removeProperty('display'));
+}
+
+function hideAds() {
+    document.querySelectorAll(AD_SELECTORS).forEach(ad => 
+        ad.style.setProperty('display', 'none', 'important')
+    );
+}
+
+function showMedia() {
+    document.querySelectorAll(`${MEDIA_CONTAINER_SELECTOR}[data-silent-reddit-placeholder]`).forEach(container => {
+        container.style.display = '';
+        delete container.dataset.silentRedditPlaceholder;
+    });
+    document.querySelectorAll('.silent-reddit-text-placeholder').forEach(el => el.remove());
+    document.querySelectorAll('[data-silent-reddit-processed]').forEach(el => 
+        delete el.dataset.silentRedditProcessed
+    );
+}
+
+function createPlaceholder(isVideo) {
+    const placeholder = document.createElement('span');
+    placeholder.className = 'silent-reddit-text-placeholder';
+    placeholder.innerHTML = isVideo ? '🎬' : '🖼️';
+    placeholder.title = `${isVideo ? 'Video' : 'Image'} hidden`;
+    return placeholder;
+}
+
+function hideMedia() {
+    document.querySelectorAll(MEDIA_CONTAINER_SELECTOR).forEach(container => {
+        if (container.dataset.silentRedditPlaceholder) return;
+        
+        const hasVideo = container.querySelector('shreddit-embed, shreddit-async-loader[bundlename="embed"]');
+        const hasImage = container.querySelector('img');
+        
+        if (hasImage || hasVideo) {
+            container.dataset.silentRedditPlaceholder = 'true';
+            container.style.setProperty('display', 'none', 'important');
+            container.parentNode?.insertBefore(createPlaceholder(!!hasVideo), container.nextSibling);
+        }
+    });
+}
+
+function removeAllBlocking() {
+    showAds();
+    showMedia();
+}
+
+function shouldPreserveMedia(container) {
+    if (container.dataset.silentRedditPlaceholder) return true;
+    
+    const img = container.querySelector('img');
+    if (img) {
+        if (img.classList.contains('shreddit-subreddit-icon__icon')) return true;
+        if (img.closest('a[href*="/user/"]')) return true;
+        if (img.closest('community-status-tooltip, community-status, faceplate-hovercard')) return true;
+        if (img.closest('comment-forest-empty-state, #low-comments-banner')) return true;
+        if (img.classList.contains('snoo-empty-comments', 'snoo-low-comment-count')) return true;
+        if (container.closest('[slot="thumbnail"], [data-testid="post-thumbnail"]')) return true;
+        
+        const style = window.getComputedStyle(img);
+        const width = parseInt(style.width) || img.width || 0;
+        const height = parseInt(style.height) || img.height || 0;
+        if (width < 32 && height < 32) return true;
+    }
+    
+    return false;
+}
+
+function processMediaContainer(container) {
+    if (shouldPreserveMedia(container)) return;
+    
+    const hasVideo = container.querySelector('shreddit-embed, shreddit-async-loader[bundlename="embed"]');
+    const hasImage = container.querySelector('img');
+    
+    if (hasImage || hasVideo) {
+        container.dataset.silentRedditPlaceholder = 'true';
+        container.style.setProperty('display', 'none', 'important');
+        container.parentNode?.insertBefore(createPlaceholder(!!hasVideo), container.nextSibling);
+    }
+}
+
 function applyBlockingRules(targetNode = document.body) {
-    if (!targetNode) return;
-
-    // Block ad posts (shreddit-ad-post elements)
-    const adPosts = targetNode.querySelectorAll ? 
-        targetNode.querySelectorAll('shreddit-ad-post') : 
-        [];
-    adPosts.forEach(ad => {
-        ad.style.display = 'none';
-    });
-
-    // Process post images
-    // Use broader selectors to catch all images in posts and comments
-    const selectors = [
-        'article img',           // Images in article elements (feed)
-        'shreddit-post img',     // Images in post elements
-        '#main-content img',     // Images in main content area
-        '[slot="post-media-container"] img',  // Images in media containers
-        '[data-testid="post-container"] img'  // Images in post containers
-    ];
+    if (!targetNode || !currentSettings.enabled || !targetNode.querySelectorAll) return;
     
-    const postImages = targetNode.querySelectorAll ? 
-        targetNode.querySelectorAll(selectors.join(', ')) : 
-        [];
+    if (currentSettings.blockAds) {
+        targetNode.querySelectorAll(AD_SELECTORS).forEach(ad => 
+            ad.style.setProperty('display', 'none', 'important')
+        );
+    }
     
-    postImages.forEach(img => {
-        addImagePlaceholder(img);
-    });
-
-    // Block videos and media players
-    const videos = targetNode.querySelectorAll ? 
-        targetNode.querySelectorAll('article video, article shreddit-player, shreddit-post video') : 
-        [];
-    videos.forEach(video => {
-        video.style.display = 'none';
-    });
-}
-
-// Handle mutations from MutationObserver
-function handleMutations(mutations) {
-    mutations.forEach(mutation => {
-        if (mutation.type === 'childList') {
-            // Process newly added nodes
-            mutation.addedNodes.forEach(node => {
-                // Only process element nodes
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    applyBlockingRules(node);
-                }
-            });
-        }
-    });
-}
-
-// Initialize MutationObserver
-function initObserver() {
-    const observerConfig = {
-        childList: true,    // Watch for child node changes
-        subtree: true,      // Watch all descendants
-        attributes: false   // No need to watch attribute changes
-    };
-
-    const observer = new MutationObserver(handleMutations);
-    observer.observe(document.body, observerConfig);
-    
-    console.log('Silent Reddit: MutationObserver initialized');
-}
-
-// Apply initial blocking rules
-function init() {
-    console.log('Silent Reddit: Extension loaded');
-    
-    // Apply rules to existing content
-    applyBlockingRules();
-    
-    // Start observing for dynamic content
-    if (document.body) {
-        initObserver();
-    } else {
-        // Wait for body to be available
-        document.addEventListener('DOMContentLoaded', initObserver);
+    if (currentSettings.blockMedia) {
+        targetNode.querySelectorAll(MEDIA_CONTAINER_SELECTOR).forEach(processMediaContainer);
     }
 }
 
-// Start the extension
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
+function handleMutations(mutations) {
+    if (!currentSettings.enabled) return;
+    
+    mutations.forEach(mutation => {
+        if (mutation.type !== 'childList') return;
+        
+        mutation.addedNodes.forEach(node => {
+            if (node.nodeType !== Node.ELEMENT_NODE || !node.matches) return;
+            
+            if (currentSettings.blockAds && node.matches(AD_SELECTORS)) {
+                node.style.setProperty('display', 'none', 'important');
+            }
+            
+            applyBlockingRules(node);
+        });
+    });
 }
+
+function initObserver() {
+    new MutationObserver(handleMutations).observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+}
+
+async function init() {
+    await loadSettings();
+    if (currentSettings.enabled) applyBlockingRules();
+    document.body ? initObserver() : document.addEventListener('DOMContentLoaded', initObserver);
+}
+
+document.readyState === 'loading' ? 
+    document.addEventListener('DOMContentLoaded', init) : init();

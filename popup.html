@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silent Reddit Settings</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{width:280px;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#fff;color:#333}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #e5e5e5}
+        .header img{width:24px;height:24px}
+        .header h1{font-size:15px;font-weight:600}
+        .setting-item{margin-bottom:12px}
+        .setting-item:last-child{margin-bottom:0}
+        .setting-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+        .setting-label{display:flex;flex-direction:column;gap:2px;flex:1}
+        .setting-title{font-size:13px;font-weight:500}
+        .setting-description{font-size:11px;color:#888;line-height:1.3}
+        .toggle-switch{position:relative;width:42px;height:24px;flex-shrink:0;margin-left:12px}
+        .toggle-switch input{opacity:0;width:0;height:0}
+        .toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ddd;transition:.2s;border-radius:24px}
+        .toggle-slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.2s;border-radius:50%;box-shadow:0 1px 2px #0003}
+        input:checked+.toggle-slider{background:#FF4500}
+        input:checked+.toggle-slider:before{transform:translateX(18px)}
+        .status{text-align:center;padding:8px;margin-top:12px;border-radius:6px;font-size:12px;font-weight:500}
+        .status.enabled{background:#e8f5e9;color:#2e7d32}
+        .status.disabled{background:#ffebee;color:#c62828}
+        .footer{margin-top:12px;padding-top:10px;border-top:1px solid #e5e5e5;text-align:center;font-size:10px;color:#aaa}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="icons/quiet@32.png" alt="Silent Reddit">
+        <h1>Silent Reddit</h1>
+    </div>
+
+    <div class="setting-item">
+        <div class="setting-row">
+            <div class="setting-label">
+                <div class="setting-title">启用内容替换</div>
+                <div class="setting-description">隐藏广告和媒体，专注浏览</div>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="enableToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="setting-item">
+        <div class="setting-row">
+            <div class="setting-label">
+                <div class="setting-title">屏蔽广告</div>
+                <div class="setting-description">隐藏所有广告内容</div>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="blockAdsToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="setting-item">
+        <div class="setting-row">
+            <div class="setting-label">
+                <div class="setting-title">隐藏媒体</div>
+                <div class="setting-description">隐藏图片和视频内容</div>
+            </div>
+            <label class="toggle-switch">
+                <input type="checkbox" id="blockMediaToggle">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div id="status" class="status enabled">✓ 功能已启用</div>
+
+    <div class="footer">v1.0.0</div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
