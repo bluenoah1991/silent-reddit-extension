@@ -1,0 +1,21 @@
+{
+  "name": "silent-reddit",
+  "version": "1.0.0",
+  "description": "A Chrome extension to block ads and images on Reddit for distraction-free browsing during work hours",
+  "main": "content.js",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch"
+  },
+  "keywords": [
+    "chrome-extension",
+    "reddit",
+    "ad-blocker",
+    "image-blocker",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {},
+  "dependencies": {}
+}
