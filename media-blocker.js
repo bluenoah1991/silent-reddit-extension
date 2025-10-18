@@ -45,6 +45,14 @@ SilentReddit.mediaBlocker = {
                 status.style.setProperty('display', 'none', 'important');
             }
         });
+
+        // Hide comment media (videos and figures in comments)
+        targetNode.querySelectorAll(SilentReddit.SELECTORS.COMMENT_MEDIA).forEach(media => {
+            if (!media.hasAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN)) {
+                media.setAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN, 'true');
+                media.style.setProperty('display', 'none', 'important');
+            }
+        });
     },
 
     // Show all hidden media content
@@ -68,6 +76,12 @@ SilentReddit.mediaBlocker = {
         document.querySelectorAll(SilentReddit.SELECTORS.COMMUNITY_STATUS_HIDDEN).forEach(status => {
             status.style.removeProperty('display');
             status.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
+        });
+
+        // Restore comment media
+        document.querySelectorAll(SilentReddit.SELECTORS.COMMENT_MEDIA_HIDDEN).forEach(media => {
+            media.style.removeProperty('display');
+            media.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
         });
     }
 };

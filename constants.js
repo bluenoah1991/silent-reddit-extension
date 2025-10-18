@@ -32,6 +32,7 @@ SilentReddit.SELECTORS = {
     MEDIA_CONTAINER: '[slot="post-media-container"]',
     THUMBNAIL: '[slot="thumbnail"], [data-testid="post-thumbnail"]',
     COMMUNITY_STATUS: 'community-status-tooltip, community-status',
+    COMMENT_MEDIA: 'shreddit-player-2, figure.rte-media',
 
     // Icon selectors
     SUBREDDIT_ICON: '.shreddit-subreddit-icon__icon',
@@ -54,6 +55,7 @@ SilentReddit.SELECTORS = {
     MEDIA_WITH_PLACEHOLDER: '[slot="post-media-container"][data-sr-media-placeholder]',
     THUMBNAIL_HIDDEN: '[slot="thumbnail"][data-sr-media-hidden], [data-testid="post-thumbnail"][data-sr-media-hidden]',
     COMMUNITY_STATUS_HIDDEN: 'community-status-tooltip[data-sr-media-hidden], community-status[data-sr-media-hidden]',
+    COMMENT_MEDIA_HIDDEN: 'shreddit-player-2[data-sr-media-hidden], figure.rte-media[data-sr-media-hidden]',
     ICON_REPLACED: '[data-sr-icon-replaced]',
     BANNER_PROCESSED: '.community-banner[data-sr-banner-processed]'
 };
