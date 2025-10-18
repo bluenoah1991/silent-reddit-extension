@@ -9,13 +9,6 @@ async function loadSettings() {
     }
 }
 
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'SETTINGS_UPDATED') {
-        currentSettings = message.settings;
-        applyOrRemoveBlocking();
-    }
-});
-
 chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== 'sync') return;
 
@@ -209,21 +202,25 @@ function getSubredditNameFromIcon(icon) {
     return null;
 }
 
-function createLetterAvatar(name) {
-    if (!name) return null;
+// Color palette and hash function for avatar generation
+const AVATAR_COLORS = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+    '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B195', '#C06C84'
+];
 
-    const letter = name.charAt(0).toUpperCase();
-    const colors = [
-        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-        '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B195', '#C06C84'
-    ];
-
-    // Simple hash function to consistently assign colors
+function getColorFromName(name) {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const color = colors[Math.abs(hash) % colors.length];
+    return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function createLetterAvatar(name) {
+    if (!name) return null;
+
+    const letter = name.charAt(0).toUpperCase();
+    const color = getColorFromName(name);
 
     const avatar = document.createElement('div');
     avatar.className = 'silent-reddit-letter-avatar';
@@ -251,17 +248,7 @@ function createLetterAvatarDataURL(name) {
     if (!name) return null;
 
     const letter = name.charAt(0).toUpperCase();
-    const colors = [
-        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-        '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B195', '#C06C84'
-    ];
-
-    // Simple hash function to consistently assign colors
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = colors[Math.abs(hash) % colors.length];
+    const color = getColorFromName(name);
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
         <circle cx="32" cy="32" r="32" fill="${color}"/>
@@ -286,17 +273,6 @@ function extractCommunityName(element, prefixedName = null) {
     }
 
     return null;
-}
-
-// Helper function to replace img src with letter avatar
-function replaceImgWithAvatar(img, communityName) {
-    if (!communityName || img.getAttribute('data-silent-reddit-replaced')) return false;
-
-    const newAvatar = createLetterAvatarDataURL(communityName);
-    img.src = newAvatar;
-    img.srcset = '';
-    img.setAttribute('data-silent-reddit-replaced', 'true');
-    return true;
 }
 
 // Replace icons in post subreddit headers
@@ -330,12 +306,11 @@ function replaceNavCommunitiesIcons() {
 
         imgs.forEach(img => {
             const communityName = extractCommunityName(img, prefixedName);
-            if (communityName) {
-                // Save original src before replacing
-                if (!img.dataset.originalSrc) {
-                    img.dataset.originalSrc = img.src;
-                }
-                replaceImgWithAvatar(img, communityName);
+            if (communityName && !img.dataset.originalSrc) {
+                img.dataset.originalSrc = img.src;
+                img.src = createLetterAvatarDataURL(communityName);
+                img.srcset = '';
+                img.dataset.silentRedditReplaced = 'true';
             }
         });
 
@@ -382,12 +357,11 @@ function replaceRecentPagesIcons() {
 
         if (isCommunityIcon) {
             const communityName = extractCommunityName(img);
-            if (communityName) {
-                // Save original src before replacing
-                if (!img.dataset.originalSrc) {
-                    img.dataset.originalSrc = img.src;
-                }
-                replaceImgWithAvatar(img, communityName);
+            if (communityName && !img.dataset.originalSrc) {
+                img.dataset.originalSrc = img.src;
+                img.src = createLetterAvatarDataURL(communityName);
+                img.srcset = '';
+                img.dataset.silentRedditReplaced = 'true';
             }
         }
     });
@@ -521,40 +495,6 @@ function removeAllBlocking() {
     showMedia();
 }
 
-function shouldPreserveMedia(container) {
-    if (container.dataset.silentRedditPlaceholder) return true;
-
-    const img = container.querySelector('img');
-    if (img) {
-        if (img.classList.contains('shreddit-subreddit-icon__icon')) return true;
-        if (img.closest('a[href*="/user/"]')) return true;
-        if (img.closest('community-status-tooltip, community-status, faceplate-hovercard')) return true;
-        if (img.closest('comment-forest-empty-state, #low-comments-banner')) return true;
-        if (img.classList.contains('snoo-empty-comments', 'snoo-low-comment-count')) return true;
-        if (container.closest('[slot="thumbnail"], [data-testid="post-thumbnail"]')) return true;
-
-        const style = window.getComputedStyle(img);
-        const width = parseInt(style.width) || img.width || 0;
-        const height = parseInt(style.height) || img.height || 0;
-        if (width < 32 && height < 32) return true;
-    }
-
-    return false;
-}
-
-function processMediaContainer(container) {
-    if (shouldPreserveMedia(container)) return;
-
-    const hasVideo = container.querySelector('shreddit-embed, shreddit-async-loader[bundlename="embed"]');
-    const hasImage = container.querySelector('img');
-
-    if (hasImage || hasVideo) {
-        container.dataset.silentRedditPlaceholder = 'true';
-        container.style.setProperty('display', 'none', 'important');
-        container.parentNode?.insertBefore(createPlaceholder(!!hasVideo), container.nextSibling);
-    }
-}
-
 function replaceRedditLogo() {
     const logoLink = document.querySelector('a#reddit-logo[href="/"]');
     if (!logoLink || logoLink.dataset.silentRedditReplaced) return;
@@ -595,7 +535,18 @@ function applyBlockingRules(targetNode = document.body) {
 
     if (currentSettings.blockMedia) {
         console.log('[Silent Reddit] blockMedia is enabled, processing...');
-        targetNode.querySelectorAll(MEDIA_CONTAINER_SELECTOR).forEach(processMediaContainer);
+        targetNode.querySelectorAll(MEDIA_CONTAINER_SELECTOR).forEach(container => {
+            if (container.dataset.silentRedditPlaceholder) return;
+
+            const hasVideo = container.querySelector('shreddit-embed, shreddit-async-loader[bundlename="embed"]');
+            const hasImage = container.querySelector('img');
+
+            if (hasImage || hasVideo) {
+                container.dataset.silentRedditPlaceholder = 'true';
+                container.style.setProperty('display', 'none', 'important');
+                container.parentNode?.insertBefore(createPlaceholder(!!hasVideo), container.nextSibling);
+            }
+        });
         targetNode.querySelectorAll(THUMBNAIL_SELECTOR).forEach(thumbnail => {
             if (!thumbnail.dataset.silentRedditHidden) {
                 thumbnail.dataset.silentRedditHidden = 'true';

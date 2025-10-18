@@ -53,12 +53,6 @@ async function handleToggleChange() {
 
     if (await saveSettings(settings)) {
         updateUI(settings);
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tab?.url?.includes('reddit.com')) {
-                chrome.tabs.sendMessage(tab.id, { type: 'SETTINGS_UPDATED', settings }).catch(() => { });
-            }
-        } catch { }
     }
 }
 
