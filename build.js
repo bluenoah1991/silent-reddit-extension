@@ -5,8 +5,15 @@ const path = require('path');
 
 const SOURCE_DIR = __dirname;
 const OUTPUT_DIR = path.join(__dirname, 'out');
-const FILES_TO_COPY = ['manifest.json', 'content.js', 'styles.css', 'popup.html', 'popup.js', 'stack-overflow-wordmark.svg'];
+const FILES_TO_COPY = ['manifest.json', 'styles.css', 'popup.html', 'popup.js', 'stack-overflow-wordmark.svg'];
 const DIRS_TO_COPY = ['icons'];
+
+// Auto-scan for all .js files in root directory (excluding build.js and .backup files)
+function getJsFiles() {
+    const jsFiles = fs.readdirSync(SOURCE_DIR)
+        .filter(file => file.endsWith('.js') && file !== 'build.js' && !file.endsWith('.backup'));
+    return jsFiles;
+}
 
 function ensureDir(dirPath) {
     if (!fs.existsSync(dirPath)) {
@@ -75,8 +82,11 @@ function build() {
     let successCount = 0;
     let failCount = 0;
 
-    [...FILES_TO_COPY, ...DIRS_TO_COPY].forEach(item => {
-        const fn = FILES_TO_COPY.includes(item) ? copyFile : copyDir;
+    const jsFiles = getJsFiles();
+    const allItems = [...FILES_TO_COPY, ...jsFiles, ...DIRS_TO_COPY];
+
+    allItems.forEach(item => {
+        const fn = DIRS_TO_COPY.includes(item) ? copyDir : copyFile;
         fn(item) ? successCount++ : failCount++;
     });
 
@@ -90,7 +100,10 @@ function watch() {
     build();
     console.log('\nWatching for file changes...\nPress Ctrl+C to stop\n');
 
-    FILES_TO_COPY.forEach(fileName => {
+    const jsFiles = getJsFiles();
+    const filesToWatch = [...FILES_TO_COPY, ...jsFiles];
+
+    filesToWatch.forEach(fileName => {
         const filePath = path.join(SOURCE_DIR, fileName);
         if (fs.existsSync(filePath)) {
             fs.watch(filePath, (eventType) => {

@@ -31,6 +31,15 @@
         "styles.css"
       ],
       "js": [
+        "constants.js",
+        "settings-manager.js",
+        "ads-blocker.js",
+        "media-blocker.js",
+        "banner-blocker.js",
+        "logo-replacer.js",
+        "icons-replacer.js",
+        "coordinator.js",
+        "mutation-observer.js",
         "content.js"
       ],
       "run_at": "document_start"
