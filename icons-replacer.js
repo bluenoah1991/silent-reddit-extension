@@ -59,6 +59,19 @@ SilentReddit.iconsReplacer = {
         return 'data:image/svg+xml;base64,' + btoa(svg);
     },
 
+    // Helper: Mark element as replaced and hide it
+    _markAndHideElement(element) {
+        element.setAttribute(SilentReddit.DATA_ATTRS.ICON_REPLACED, 'true');
+        element.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_STYLE, element.style.cssText);
+
+        // Save src for img elements
+        if (element.tagName === 'IMG') {
+            element.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_SRC, element.src);
+        }
+
+        element.style.setProperty('display', 'none', 'important');
+    },
+
     // Extract subreddit name from icon element
     _getSubredditNameFromIcon(icon) {
         // Try to find subreddit name from nearby link (check parent and search-community container)
@@ -109,11 +122,28 @@ SilentReddit.iconsReplacer = {
         // Try to extract from link text content (for search comment list with href="#")
         const parentLink = avatar.closest('a[href="#"]');
         if (parentLink) {
-            const linkText = Array.from(parentLink.childNodes)
-                .filter(node => node.nodeType === Node.TEXT_NODE)
-                .map(node => node.textContent.trim())
-                .join('');
+            // Get all text content from the link, including nested elements
+            const linkText = parentLink.textContent.trim();
             if (linkText) {
+                const textMatch = linkText.match(/^u\/([^\s]+)|^([A-Za-z0-9_-]+)$/);
+                if (textMatch) return textMatch[1] || textMatch[2];
+            }
+        }
+
+        // Try to extract from adjacent text node (next to avatar container)
+        const avatarContainer = avatar.closest('[rpl][avatar]');
+        if (avatarContainer) {
+            // Check next sibling text node
+            if (avatarContainer.nextSibling?.nodeType === Node.TEXT_NODE) {
+                const text = avatarContainer.nextSibling.textContent.trim();
+                const textMatch = text.match(/^u\/([^\s]+)|^([A-Za-z0-9_-]+)$/);
+                if (textMatch) return textMatch[1] || textMatch[2];
+            }
+
+            // Also check parent link's text content (for <a href="#"><span avatar></span>Username</a>)
+            const parentLinkOfContainer = avatarContainer.parentElement;
+            if (parentLinkOfContainer?.tagName === 'A' && parentLinkOfContainer.getAttribute('href') === '#') {
+                const linkText = parentLinkOfContainer.textContent.trim();
                 const textMatch = linkText.match(/^u\/([^\s]+)|^([A-Za-z0-9_-]+)$/);
                 if (textMatch) return textMatch[1] || textMatch[2];
             }
@@ -126,14 +156,6 @@ SilentReddit.iconsReplacer = {
             const alt = img.alt || img.getAttribute('alt') || '';
             const altMatch = alt.match(/u\/([^\s]+)/);
             if (altMatch) return altMatch[1];
-        }
-
-        // Try to extract from adjacent text node
-        const avatarContainer = avatar.closest('[rpl][avatar]');
-        if (avatarContainer?.nextSibling?.nodeType === Node.TEXT_NODE) {
-            const text = avatarContainer.nextSibling.textContent.trim();
-            const textMatch = text.match(/^u\/([^\s]+)|^([^\s]+)$/);
-            if (textMatch) return textMatch[1] || textMatch[2];
         }
 
         // Try to extract from data-faceplate-tracking-context
@@ -266,17 +288,8 @@ SilentReddit.iconsReplacer = {
             const letterAvatar = this._createLetterAvatar(username);
             if (!letterAvatar) return;
 
-            // Mark as replaced
-            element.setAttribute(SilentReddit.DATA_ATTRS.ICON_REPLACED, 'true');
-            element.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_STYLE, element.style.cssText);
-
-            // Save src for img elements
-            if (element.tagName === 'IMG') {
-                element.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_SRC, element.src);
-            }
-
-            // Hide the element
-            element.style.setProperty('display', 'none', 'important');
+            // Mark as replaced and hide
+            this._markAndHideElement(element);
 
             // Insert letter avatar before the element
             element.parentNode?.insertBefore(letterAvatar, element);
@@ -298,9 +311,7 @@ SilentReddit.iconsReplacer = {
             // Find the actual avatar element to hide
             const avatarElement = container.querySelector('.snoovatar, img');
             if (avatarElement && !avatarElement.hasAttribute(SilentReddit.DATA_ATTRS.ICON_REPLACED)) {
-                avatarElement.setAttribute(SilentReddit.DATA_ATTRS.ICON_REPLACED, 'true');
-                avatarElement.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_STYLE, avatarElement.style.cssText);
-                avatarElement.style.setProperty('display', 'none', 'important');
+                this._markAndHideElement(avatarElement);
             }
 
             // Insert letter avatar
@@ -332,21 +343,9 @@ SilentReddit.iconsReplacer = {
                 const letterAvatar = this._createLetterAvatar(username);
                 if (!letterAvatar) return;
 
-                // Handle img elements
-                if (avatar.tagName === 'IMG') {
-                    avatar.setAttribute(SilentReddit.DATA_ATTRS.ICON_REPLACED, 'true');
-                    avatar.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_SRC, avatar.src);
-                    avatar.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_STYLE, avatar.style.cssText);
-                    avatar.style.setProperty('display', 'none', 'important');
-                    avatar.parentNode?.insertBefore(letterAvatar, avatar);
-                }
-                // Handle snoovatar containers
-                else if (avatar.classList.contains('snoovatar')) {
-                    avatar.setAttribute(SilentReddit.DATA_ATTRS.ICON_REPLACED, 'true');
-                    avatar.setAttribute(SilentReddit.DATA_ATTRS.ORIGINAL_STYLE, avatar.style.cssText);
-                    avatar.style.setProperty('display', 'none', 'important');
-                    avatar.parentNode?.insertBefore(letterAvatar, avatar);
-                }
+                // Handle both img elements and snoovatar containers
+                this._markAndHideElement(avatar);
+                avatar.parentNode?.insertBefore(letterAvatar, avatar);
             });
         });
     },

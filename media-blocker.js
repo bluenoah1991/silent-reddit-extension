@@ -11,6 +11,24 @@ SilentReddit.mediaBlocker = {
         return placeholder;
     },
 
+    // Helper: Hide elements matching a selector
+    _hideElements(targetNode, selector) {
+        targetNode.querySelectorAll(selector).forEach(element => {
+            if (!element.hasAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN)) {
+                element.setAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN, 'true');
+                element.style.setProperty('display', 'none', 'important');
+            }
+        });
+    },
+
+    // Helper: Show elements matching a selector
+    _showElements(selector) {
+        document.querySelectorAll(selector).forEach(element => {
+            element.style.removeProperty('display');
+            element.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
+        });
+    },
+
     // Hide all media content (media containers, thumbnails, community status icons)
     hideAll(targetNode = document) {
         // Hide media containers (images and videos in posts)
@@ -30,37 +48,11 @@ SilentReddit.mediaBlocker = {
             }
         });
 
-        // Hide thumbnails
-        targetNode.querySelectorAll(SilentReddit.SELECTORS.THUMBNAIL).forEach(thumbnail => {
-            if (!thumbnail.hasAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN)) {
-                thumbnail.setAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN, 'true');
-                thumbnail.style.setProperty('display', 'none', 'important');
-            }
-        });
-
-        // Hide community status icons
-        targetNode.querySelectorAll(SilentReddit.SELECTORS.COMMUNITY_STATUS).forEach(status => {
-            if (!status.hasAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN)) {
-                status.setAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN, 'true');
-                status.style.setProperty('display', 'none', 'important');
-            }
-        });
-
-        // Hide comment media (videos and figures in comments)
-        targetNode.querySelectorAll(SilentReddit.SELECTORS.COMMENT_MEDIA).forEach(media => {
-            if (!media.hasAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN)) {
-                media.setAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN, 'true');
-                media.style.setProperty('display', 'none', 'important');
-            }
-        });
-
-        // Hide faceplate-gif elements (GIF images in sidebar)
-        targetNode.querySelectorAll(SilentReddit.SELECTORS.FACEPLATE_GIF).forEach(gif => {
-            if (!gif.hasAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN)) {
-                gif.setAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN, 'true');
-                gif.style.setProperty('display', 'none', 'important');
-            }
-        });
+        // Hide thumbnails, community status icons, comment media, and GIFs
+        this._hideElements(targetNode, SilentReddit.SELECTORS.THUMBNAIL);
+        this._hideElements(targetNode, SilentReddit.SELECTORS.COMMUNITY_STATUS);
+        this._hideElements(targetNode, SilentReddit.SELECTORS.COMMENT_MEDIA);
+        this._hideElements(targetNode, SilentReddit.SELECTORS.FACEPLATE_GIF);
     },
 
     // Show all hidden media content
@@ -74,29 +66,11 @@ SilentReddit.mediaBlocker = {
         // Remove all placeholder elements
         document.querySelectorAll(`.${SilentReddit.CSS_CLASSES.TEXT_PLACEHOLDER}`).forEach(el => el.remove());
 
-        // Restore thumbnails
-        document.querySelectorAll(SilentReddit.SELECTORS.THUMBNAIL_HIDDEN).forEach(thumbnail => {
-            thumbnail.style.removeProperty('display');
-            thumbnail.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
-        });
-
-        // Restore community status icons
-        document.querySelectorAll(SilentReddit.SELECTORS.COMMUNITY_STATUS_HIDDEN).forEach(status => {
-            status.style.removeProperty('display');
-            status.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
-        });
-
-        // Restore comment media
-        document.querySelectorAll(SilentReddit.SELECTORS.COMMENT_MEDIA_HIDDEN).forEach(media => {
-            media.style.removeProperty('display');
-            media.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
-        });
-
-        // Restore faceplate-gif elements
-        document.querySelectorAll(SilentReddit.SELECTORS.FACEPLATE_GIF_HIDDEN).forEach(gif => {
-            gif.style.removeProperty('display');
-            gif.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
-        });
+        // Restore all hidden media elements
+        this._showElements(SilentReddit.SELECTORS.THUMBNAIL_HIDDEN);
+        this._showElements(SilentReddit.SELECTORS.COMMUNITY_STATUS_HIDDEN);
+        this._showElements(SilentReddit.SELECTORS.COMMENT_MEDIA_HIDDEN);
+        this._showElements(SilentReddit.SELECTORS.FACEPLATE_GIF_HIDDEN);
     }
 };
 
