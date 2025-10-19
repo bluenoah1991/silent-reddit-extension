@@ -53,6 +53,14 @@ SilentReddit.mediaBlocker = {
                 media.style.setProperty('display', 'none', 'important');
             }
         });
+
+        // Hide faceplate-gif elements (GIF images in sidebar)
+        targetNode.querySelectorAll(SilentReddit.SELECTORS.FACEPLATE_GIF).forEach(gif => {
+            if (!gif.hasAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN)) {
+                gif.setAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN, 'true');
+                gif.style.setProperty('display', 'none', 'important');
+            }
+        });
     },
 
     // Show all hidden media content
@@ -82,6 +90,12 @@ SilentReddit.mediaBlocker = {
         document.querySelectorAll(SilentReddit.SELECTORS.COMMENT_MEDIA_HIDDEN).forEach(media => {
             media.style.removeProperty('display');
             media.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
+        });
+
+        // Restore faceplate-gif elements
+        document.querySelectorAll(SilentReddit.SELECTORS.FACEPLATE_GIF_HIDDEN).forEach(gif => {
+            gif.style.removeProperty('display');
+            gif.removeAttribute(SilentReddit.DATA_ATTRS.MEDIA_HIDDEN);
         });
     }
 };

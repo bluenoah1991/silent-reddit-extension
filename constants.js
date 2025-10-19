@@ -30,15 +30,17 @@ SilentReddit.SELECTORS = {
 
     // Media selectors
     MEDIA_CONTAINER: '[slot="post-media-container"]',
-    THUMBNAIL: '[slot="thumbnail"], [data-testid="post-thumbnail"]',
+    THUMBNAIL: '[slot="thumbnail"], [data-testid="post-thumbnail"], [data-testid="search_post_thumbnail"]',
     COMMUNITY_STATUS: 'community-status-tooltip, community-status',
     COMMENT_MEDIA: 'shreddit-player-2, figure.rte-media',
+    FACEPLATE_GIF: 'faceplate-gif',
 
     // Icon selectors
-    SUBREDDIT_ICON: '.shreddit-subreddit-icon__icon',
-    USER_AVATAR_IMG: '[slot="commentAvatar"] img, a[href*="/user/"] img',
-    SNOOVATAR: '[slot="commentAvatar"] .snoovatar, a[href*="/user/"] .snoovatar',
+    SUBREDDIT_ICON: '.shreddit-subreddit-icon__icon:not(svg), .post-credit-row span[rpl][avatar] img[alt*="r/"]',
+    USER_AVATAR_IMG: '[slot="commentAvatar"] img, a[href*="/user/"] img, [data-testid="search-author"] img, [data-testid="search-community"] img, img[data-testid="nsfw-subreddit-icon"]',
+    SNOOVATAR: '.snoovatar',
     AVATAR_CONTAINER: '[slot="commentAvatar"] [rpl][avatar]',
+    MODERATOR_LIST_ITEM: 'faceplate-tracker[source="moderator_list"]',
 
     // Shadow DOM selectors
     NAV_COMMUNITIES_CONTROLLER: 'left-nav-communities-controller',
@@ -53,9 +55,10 @@ SilentReddit.SELECTORS = {
 
     // Query selectors for elements with specific data attributes
     MEDIA_WITH_PLACEHOLDER: '[slot="post-media-container"][data-sr-media-placeholder]',
-    THUMBNAIL_HIDDEN: '[slot="thumbnail"][data-sr-media-hidden], [data-testid="post-thumbnail"][data-sr-media-hidden]',
+    THUMBNAIL_HIDDEN: '[slot="thumbnail"][data-sr-media-hidden], [data-testid="post-thumbnail"][data-sr-media-hidden], [data-testid="search_post_thumbnail"][data-sr-media-hidden]',
     COMMUNITY_STATUS_HIDDEN: 'community-status-tooltip[data-sr-media-hidden], community-status[data-sr-media-hidden]',
     COMMENT_MEDIA_HIDDEN: 'shreddit-player-2[data-sr-media-hidden], figure.rte-media[data-sr-media-hidden]',
+    FACEPLATE_GIF_HIDDEN: 'faceplate-gif[data-sr-media-hidden]',
     ICON_REPLACED: '[data-sr-icon-replaced]',
     BANNER_PROCESSED: '.community-banner[data-sr-banner-processed]'
 };
